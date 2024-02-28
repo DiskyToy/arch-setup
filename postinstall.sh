@@ -20,7 +20,7 @@ base=(
 	smartmontools
     )
 gui=(
-	hyprland
+	hyprland-git
 	xorg-xhost
 	rofi
 	waybar
