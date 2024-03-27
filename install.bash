@@ -12,18 +12,17 @@ fi
 target="/dev/nvme0n1"
 rootmnt="/mnt"
 locale="en_US.UTF-8"
-keymap="de"
+keymap="de-latin1-nodeadkeys"
 timezone="Europe/Vienna"
 hostname="earth"
 username="human"
 #SHA512 hash of password. To generate, run 'mkpasswd -m sha-512', don't forget to prefix any $ symbols with \ . The entry below is the hash of 'password'
 #or just simply copy from your current /etc/shadow
 user_password="\$6\$....x//"
-swap_password="PLAINTEXT SWAP PASSWORD"
-#To fully automate the setup, change badidea=no to yes, and enter a cleartext password for the disk encryption 
-badidea="yes"
+#To fully automate the setup, change badidea=no to yes, and enter a cleartext password for the disk and swap encryption
+badidea="no"
 crypt_password="PLAINTEXT NVME ENCRYPTION PASSWORD"
-
+swap_password="PLAINTEXT SWAP PASSWORD"
 
 ### Packages to pacstrap ##
 pacstrappacs=(
@@ -32,6 +31,7 @@ pacstrappacs=(
         linux
         linux-firmware
         intel-ucode
+        #amd-ucode
         vim
         nano
         cryptsetup
@@ -43,10 +43,10 @@ pacstrappacs=(
         )    
 ### Desktop packages #####
 guipacs=(
-  	chromium	
+        #chromium	
 	kitty
 	nm-connection-editor
-	neofetch
+	#neofetch
  	sbctl
 	make
 	fakeroot
@@ -67,8 +67,8 @@ sgdisk \
 sleep 2
 partprobe -s "$target"
 sleep 2
-echo "Encrypting root partition..."
-#Encrypt the root partition. If badidea=yes, then pipe cryptpass and carry on, if not, prompt for it
+echo "Encrypting root and swap partition..."
+#Encrypt the root and swap partition. If badidea=yes, then pipe cryptpass and carry on, if not, prompt for it
 if [[ "$badidea" == "yes" ]]; then
 echo -n "$crypt_password" | cryptsetup luksFormat --type luks2 /dev/disk/by-partlabel/linux -
 echo -n "$crypt_password" | cryptsetup luksOpen /dev/disk/by-partlabel/linux root -
@@ -122,8 +122,10 @@ arch-chroot "$rootmnt" useradd -G wheel -m -p "$user_password" "$username"
 sed -i -e '/^# %wheel ALL=(ALL:ALL) ALL/s/^# //' "$rootmnt"/etc/sudoers
 #create a basic kernel cmdline, we're using DPS so we don't need to have anything here really, but if the file doesn't exist, mkinitcpio will complain
 swapid="$(lsblk -f | grep 'p3' | awk 'NR>0 {print $NF}')"
+#rd.luks.name and resume are options for encrypted swap. "quiet rw" would be default without encrypted swap.
 echo "rd.luks.name=$swapid=swap resume=/dev/mapper/swap quiet rw" > "$rootmnt"/etc/kernel/cmdline
 #change the HOOKS in mkinitcpio.conf to use systemd hooks
+#systemd hook takes care of the resume hook
 sed -i \
     -e 's/base udev/base systemd/g' \
     -e 's/keymap consolefont/sd-vconsole sd-encrypt/g' \
@@ -155,7 +157,6 @@ systemctl --root "$rootmnt" mask systemd-networkd
 echo "Generating UKI and installing Boot Loader..."
 arch-chroot "$rootmnt" mkinitcpio -p linux
 echo "Setting up Secure Boot..."
-#echo "skipping"
 if [[ "$(efivar -d --name 8be4df61-93ca-11d2-aa0d-00e098032b8c-SetupMode)" -eq 1 ]]; then
 arch-chroot "$rootmnt" sbctl create-keys
 arch-chroot "$rootmnt" sbctl enroll-keys -m
