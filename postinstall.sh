@@ -11,110 +11,155 @@
 #-----------------------#
 
 base=(
-	nano
+	fwupd
+	gvfs-smb
+	linux-headers
+	mtd-utils
 	neovim
-	openssh
+	ntfs-3g
+	smartmontools
+	ufw
 	wget
 	wireless_tools
 	wpa_supplicant
-	smartmontools
     )
 gui=(
-	hyprland-git
-	xorg-xhost
-	rofi
-	waybar
-	swww
-	python-pywal
-	ttf-font-awesome
-	ttf-jetbrains-mono
-	ttf-hack-nerd
+	#Hypr Eco-System
+	cliphist
+	greetd-tuigreet-git
 	grim
-	slurp
+	hyprcursor
+	hypridle
+	#using the -git version because it fixed the resizing issue I had. Might change to "hyprland" in future
+	hyprland-git
+	hyprlock
+	hyprpaper
+	polkit-kde-agent
 	qt5-base
 	qt5-wayland
 	qt6-base
 	qt6-wayland
-	swayidle
-	swaylock
-	xdg-desktop-portal-hyprland
+	rofi-lbonn-wayland-only-git
+	slurp
 	tiramisu-git
+	ttf-font-awesome
+	ttf-hack-nerd
+	ttf-jetbrains-mono
+	waybar
+	wl-clipboard
+	xdg-desktop-portal-gtk
+	xdg-desktop-portal-hyprland
+	xwaylandvideobridge
     )
 audio=(
-	pipewire
-	pipewire-audio
-	pipewire-alsa
-	jack2
-	pipewire-pulse
+	#sof-firmware
+	alsa-firmware
+	alsa-utils
 	gst-plugin-pipewire
 	libpulse
+	pamixer
+	pavucontrol
+	pipewire
+	pipewire-alsa
+	pipewire-audio
+	pipewire-jack
+	pipewire-pulse
 	wireplumber
-	#sof-firmware
     )
 drivers=(
-	bluez
-	bluez-utils
 	blueman
+	bluez
+	bluez-tools
+	bluez-utils
+	intel-media-driver
+	libva-utils
+	vulkan-intel
     )
 kernelmodules=(
 	#aic94xx-firmware
 	#ast-firmware
 	#linux-firmware-qlogic
-	#wd719x-firmware
 	#upd72020x-fw
+	#wd719x-firmware
     )
 tools=(
 	arch-audit
 	bash-completion
 	bat
-	btrfs-progs
-	tlp
-	fzf
-	btop
-	chromium
-	wireguard-tools
-	kitty
-	thunar
 	bitwarden
-	signal-desktop
-	discord
-	neofetch
 	brightnessctl
+	btop
+	btrfs-progs
+	chromium
+	discord
 	eza
+	fd
+	fprintd
+	fzf
 	gimp
 	glow
 	gnome-calculator
 	gnome-disk-utility
+	icat
 	imv
-	mpv
 	linux-headers
+	mpv
 	network-manager-applet
-	nm-connection-editor
+	oh-my-zsh-git
 	pam
 	pam-u2f
+	python-pip
+	ripgrep
+	signal-desktop
+	spotify-launcher
+	starship
+	steam
 	teamspeak3
+	thunar
+	thunar-archive-plugin
+	thunar-vcs-plugin
+	tlp
 	udisks2
+	unrar
 	unzip
+	visual-studio-code-bin
+	wireguard-tools
 	yubico-c
 	yubico-c-client
 	yubikey-manager
 	yubikey-manager-qt
 	yubikey-personalization
 	yubikey-personalization-gui
+	zsh
+	zsh-completions
     )
+theme=(
+	arc-gtk-theme
+	arc-icon-theme
+	gnome-themes-extra
+	gtk-engine-murrine
+	nwg-look
+	papirus-folders
+	papirus-icon-theme
+	plymouth
+	plymouth-theme-arch-os
+	qogit-cursor-theme-git
+	vimix-cursors
+	volantes-cursors-git
+	)
 kvmqemu=(
-	virt-manager
-	virt-viewer
-	qemu-full
-	vde2
+	bridge-utils
+	dnsmasq
 	ebtables
+	edk2-ovmf
 	iptables-nft
 	nftables
-	dnsmasq
-	bridge-utils
-	ovmf
-	swtpm
+	qemu-full
 	qemu-hw-display-qxl	
+	swtpm
+	vde2
+	virt-manager
+	virt-viewer
     )
 
 # optimize pacman
@@ -127,17 +172,36 @@ sudo sed -i \
 #echo -e "[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
 #pacman -Sy
 
+echo "installing 'base'-packages"
 sudo pacman -Sy --needed "${base[@]}" --noconfirm --quiet
+sudo systemctl enable ufw.service
+sudo systemctl start ufw.service
+sudo ufw enable
+sudo ufw default deny
+sudo systemctl enable reflector.service
 
+echo "installing 'GUI'-packages"
 yay -S --needed "${gui[@]}" --noconfirm --quiet
+sudo systemctl enable greetd
+
+echo "installing 'audio'-packages"
 yay -S --needed "${audio[@]}" --noconfirm --quiet
+systemctl enable --user pipewire-pulse.service
+
+echo "installing 'drivers'-packages"
 yay -S --needed "${drivers[@]}" --noconfirm --quiet
 sudo systemctl enable bluetooth.service
+
+echo "installing 'kernelmodules'-packages"
 yay -S --needed "${kernelmodules[@]}" --noconfirm --quiet
+
+echo "installing 'tools'-packages"
 yay -S --needed "${tools[@]}" --noconfirm --quiet
 sudo systemctl enable tlp
 
-systemctl enable --user pipewire-pulse.service
+echo "installing 'theme'-packages"
+yay -S --needed "${tools[@]}" --noconfirm --quiet
+
 
 # kvm qemu stuff
 sudo pacman -Sy --needed "${kvmqemu[@]}" --noconfirm --quiet
@@ -151,8 +215,8 @@ sudo systemctl enable libvirtd && sudo systemctl start libvirtd
 
 #replace with your user/group name
 sudo sed -i \
-    's/#user = "libvirt-qemu"/user = "jewld"/g' \
-    's/#group = "libvirt-qemu"/user = "jewld"/g' \
+    's/#user = "libvirt-qemu"/user = "INSERT_USER"/g' \
+    's/#group = "libvirt-qemu"/user = "INSERT_USER"/g' \
     /etc/libvirt/qemu.conf
 
 sudo systemctl restart libvirtd && sudo virsh net-autostart default

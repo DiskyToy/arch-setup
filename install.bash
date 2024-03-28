@@ -39,14 +39,14 @@ pacstrappacs=(
         e2fsprogs
         dosfstools
         sudo
+        reflector
         networkmanager
         )    
 ### Desktop packages #####
 guipacs=(
-        #chromium	
 	kitty
 	nm-connection-editor
-	#neofetch
+	neofetch
  	sbctl
 	make
 	fakeroot
